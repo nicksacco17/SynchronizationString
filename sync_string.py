@@ -108,13 +108,18 @@ class Synchronization_String():
         
         SYNCHRONIZATION_COMPLETE = False
 
-        print("NUMBER OF INTERVALS = %d" % self.num_itervals)
+        #print("NUMBER OF INTERVALS = %d" % self.num_itervals)
         iteration = 0
+        total_number_invalid_intervals = 0
+        average_number_invalid_intervals_per_iteration = 0
         while not SYNCHRONIZATION_COMPLETE:
 
             number_invalid_intervals = self.verify_intervals()
-            if iteration % 100 == 0:
-                print("--> ITERATION = %d, NUMBER OF INVALID INTERVALS = %d" % (iteration, number_invalid_intervals))
+            total_number_invalid_intervals += number_invalid_intervals
+
+            #if iteration % 100 == 0:
+            #    print("--> ITERATION = %d, NUMBER OF INVALID INTERVALS = %d" % (iteration, number_invalid_intervals))
+
             iteration += 1
             if number_invalid_intervals == 0:
                 SYNCHRONIZATION_COMPLETE = True
@@ -122,7 +127,13 @@ class Synchronization_String():
         # Verify one more time
         num_invalid_intervals = self.verify_intervals()
         assert num_invalid_intervals == 0, "[ERROR], VERIFICATION NOT COMPLETE!"
-        print("VERIFICATION COMPLETE; NUMBER OF INVALID INTERVALS = %d" % num_invalid_intervals)
+
+        average_number_invalid_intervals_per_iteration = total_number_invalid_intervals / iteration
+
+        #print("VERIFICATION COMPLETE; NUMBER OF INVALID INTERVALS = %d" % num_invalid_intervals)
+        #print("TOTAL NUMBER OF ITERATIONS = %d" % iteration)
+        #print("AVERAGE NUMBER OF INVALID INTERVALS PER ITERATION = %d" % average_number_invalid_intervals_per_iteration)
+        return iteration, average_number_invalid_intervals_per_iteration
         
     def get_string_representation(self):
         #return self.index_alphabet.convert_symbols_to_string(self.str)
@@ -269,7 +280,9 @@ if __name__ == '__main__':
 
     #pause(True)
 
-    header_epsilon = ['x'] + ['{0:.2f}'.format(0.05 * e) for e in range(1, 15)]
+    header = ["STRING ID", "SYNC-STRING", "NUM ITERATIONS", "AVG NUM INVALID INTERVALS PER ITERATION", "CONSTRUCTON TIME"]
+
+    #header_epsilon = ['x'] + ['{0:.2f}'.format(0.05 * e) for e in range(1, 15)]
 
     if not os.path.exists("sync_string_data"):
         os.makedirs(CSV_PATH + "sync_string_data")
@@ -277,42 +290,82 @@ if __name__ == '__main__':
     DATA_PATH = CSV_PATH + "sync_string_data"
     sync_string_dictionary = DATA_PATH + "\\sync_str_dict.csv"
 
-    with open(sync_string_dictionary, 'w', newline = '') as csvfile:
-        writer = csv.writer(csvfile, delimiter = ',')
-        writer.writerow(header_epsilon)
-    csvfile.close()
+    for n in range(10, 50, 5):
+        
+        for e in range(1, 10):
+
+            epsilon = "{:0.4f}".format(0.05 * e)
+            file_name = DATA_PATH + "\\sync_str_%d_%s" % (n, epsilon[2 : ])
+            row_list = []
+
+            print("---------- STRING LENGTH = %d, EPSILON = %0.2lf ----------" % (n, 0.05 * e))
+            
+            for i in range(0, 50):
+
+                row = [str(i)]
+
+                S = Synchronization_String(epsilon = 0.05 * e, n = n)
+                
+                start_time = time.time()
+                total_iterations, avg_invalid_intervals = S.verify_synchronization()
+                stop_time = time.time()
+
+                str_rep = S.get_string_representation()
+
+                construction_time = stop_time - start_time
+
+                row.append(str_rep)
+                row.append(total_iterations)
+                row.append("{:0.4f}".format(avg_invalid_intervals))
+                row.append("{:0.5e}".format(construction_time))
+                row_list.append(row)
+
+                print("--> STRING %d, CONSTRUCTION TIME = %lf sec" % (i, construction_time))
+            
+            with open(file_name, 'w', newline = '') as csvfile:
+                writer = csv.writer(csvfile, delimiter = ',')
+                writer.writerow(header)
+
+                for row in row_list:
+                    writer.writerow(row)
+            csvfile.close()
+
+    #with open(sync_string_dictionary, 'w', newline = '') as csvfile:
+    #    writer = csv.writer(csvfile, delimiter = ',')
+    #    writer.writerow(header_epsilon)
+    #csvfile.close()
 
     #with open(sync_string_dictionary, newline = '') as csvfile:
     #    reader = csv.reader(csvfile, delimiter = ',')
     #    for row in reader:
     #        print(" ".join(row))
 
-    row_list = []
-    for n in range(10, 25, 5):
-        row = [str(n)]
-        for e in range(1, 15):
+    #row_list = []
+    #for n in range(10, 25, 5):
+    #    row = [str(n)]
+    #    for e in range(1, 15):
 
-            print("---------- STRING LENGTH = %d, EPSILON = %0.2lf ----------" % (n, 0.05 * e))
-            S = Synchronization_String(epsilon = 0.05 * e, n = n)
-            S.verify_synchronization()
+    #        print("---------- STRING LENGTH = %d, EPSILON = %0.2lf ----------" % (n, 0.05 * e))
+    #        S = Synchronization_String(epsilon = 0.05 * e, n = n)
+    #        S.verify_synchronization()
 
             #S.print_interval(interval = (0, 0, n))
 
-            str_rep = S.get_string_representation()
+    #        str_rep = S.get_string_representation()
 
             #string_representation, byte_representation, _ = S.get_string_representation()
-            row.append(str_rep)
+    #        row.append(str_rep)
 
-        row_list.append(row)
+    #    row_list.append(row)
 
     #for row in row_list:
     #    print(row)
 
-    with open(sync_string_dictionary, 'a', newline = '') as csvfile:
-        writer = csv.writer(csvfile, delimiter = ',')
-        for row in row_list:
-            writer.writerow(row)
-    csvfile.close()
+    #with open(sync_string_dictionary, 'a', newline = '') as csvfile:
+    #    writer = csv.writer(csvfile, delimiter = ',')
+    #    for row in row_list:
+    #        writer.writerow(row)
+    #csvfile.close()
 
     #for n in range(10, 256, 5):
         
