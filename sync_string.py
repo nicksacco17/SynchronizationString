@@ -6,6 +6,8 @@ import time as time
 import math as math
 import csv as csv
 import os as os
+import sys as sys
+
 
 import alphabet as a
 import distance as dist
@@ -280,6 +282,8 @@ if __name__ == '__main__':
 
     #pause(True)
 
+    main_directory = sys.argv[1]
+
     header = ["STRING ID", "SYNC-STRING", "NUM ITERATIONS", "AVG NUM INVALID INTERVALS PER ITERATION", "CONSTRUCTON TIME"]
 
     #header_epsilon = ['x'] + ['{0:.2f}'.format(0.05 * e) for e in range(1, 15)]
@@ -287,15 +291,17 @@ if __name__ == '__main__':
     if not os.path.exists("sync_string_data"):
         os.makedirs(CSV_PATH + "sync_string_data")
 
-    DATA_PATH = CSV_PATH + "sync_string_data"
-    sync_string_dictionary = DATA_PATH + "\\sync_str_dict.csv"
+    #DATA_PATH = CSV_PATH + "sync_string_data"
+    DATA_PATH = os.path.join(main_directory, "sync_string_data")
+    #sync_string_dictionary = DATA_PATH + "\\sync_str_dict.csv"
 
-    for n in range(10, 50, 5):
+    for n in range(10, 25, 5):
         
         for e in range(1, 10):
 
             epsilon = "{:0.4f}".format(0.05 * e)
-            file_name = DATA_PATH + "\\sync_str_%d_%s" % (n, epsilon[2 : ])
+            file_name = os.path.join(DATA_PATH, "sync_str_%d_%s" % (n, epsilon[2 : ]))
+            #file_name = DATA_PATH + "\\sync_str_%d_%s" % (n, epsilon[2 : ])
             row_list = []
 
             print("---------- STRING LENGTH = %d, EPSILON = %0.2lf ----------" % (n, 0.05 * e))
