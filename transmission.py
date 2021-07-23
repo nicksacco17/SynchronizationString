@@ -1,6 +1,7 @@
 
 import numpy as np
 import alphabet as a
+import sync_string as sync
 
 class Tuple():
 
@@ -13,31 +14,46 @@ class Tuple():
 
 class Transmitter():
 
-    def __init__(self, transmission_length, index_alphabet = None, indexing_scheme = "UNIQUE"):
+    def __init__(self, transmission_length, epsilon = 0.5, indexing_scheme = "UNIQUE", load_str = False, path = None):
 
         self.transmission_length = transmission_length
         self.indexing_scheme = indexing_scheme
+        self.indexing_sequence = np.empty(shape = self.transmission_length, dtype = a.Symbol)
 
+        # If we are using a unique indexing scheme, index each element with a unique id
         if self.indexing_scheme == "UNIQUE":
-            self.index_alphabet = a.Alphabet(size = transmission_length)
-        else:
-            self.index_alphabet = index_alphabet
+            self.indexing_alphabet = a.Alphabet(size = transmission_length)
+            for i in range(0, self.transmission_length):
+                self.indexing_sequence[i] = self.indexing_alphabet.get_symbol_by_index(index = i)
+            
+        # Else if we are using synchronization scheme, generate required synchronization string & append those elements
+        elif self.indexing_scheme == "SYNC":
+            
+            if load_str:
+                self.sync_str = sync.load_sync_str(n = self.transmission_length, epsilon = epsilon, directory = path)
+                self.sync_str.print_string(print_char = False, print_byte = False)
+            else:
+                self.sync_str = sync.Synchronization_String(epsilon = epsilon, n = self.transmission_length)
+                self.sync_str.verify_synchronization()
+
+            for i in range(0, self.transmission_length):
+                self.indexing_sequence[i] = self.sync_str.get_symbol(index = i)
 
     # Assume input_data_stream is an array of Symbols
     def create_transmission_tuple(self, input_data_stream):
 
         tx_tuple_array = np.empty(shape = self.transmission_length, dtype = Tuple)
 
-        if self.indexing_scheme == "UNIQUE":
-            indexing_sequence = np.empty(shape = self.transmission_length, dtype = a.Symbol)
-        
-            if len(indexing_sequence) == len(input_data_stream):
-                for i in range(0, len(tx_tuple_array)):
-                    tx_tuple_array[i] = Tuple(input_data_stream[i], self.index_alphabet.get_symbol_by_index(index = i))
-            else:
+        if len(input_data_stream) == len(self.indexing_sequence):
+            for i in range(0, self.transmission_length):
+                tx_tuple_array[i] = Tuple(input_data_stream[i], self.indexing_sequence[i])
+        else:
                 print("[ERROR] LENGTHS DO NOT AGREE")
 
         return tx_tuple_array
+
+    def get_indexing_sequence(self):
+        return self.indexing_sequence
             
 
 '''

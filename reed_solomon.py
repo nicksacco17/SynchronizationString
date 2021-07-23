@@ -8,6 +8,8 @@
 
 ################### INIT and stuff ###################
 
+import sys as sys
+
 DARTH_PLAGUEIS_SCRIPT = "Did you ever hear the tragedy of Darth Plagueis The Wise? I thought not. It's not a story the Jedi would tell you. It's a Sith legend. Darth Plagueis was a Dark Lord of the Sith, so powerful and so wise he could use the Force to influence the midichlorians to create life... He had such a knowledge of the dark side that he could even keep the ones he cared about from dying. The dark side of the Force is a pathway to many abilities some consider to be unnatural. He became so powerful... the only thing he was afraid of was losing his power, which eventually, of course, he did. Unfortunately, he taught his apprentice everything he knew, then his apprentice killed him in his sleep. Ironic. He could save others from death, but not himself."
 
 try: # compatibility with Python 3+
@@ -17,6 +19,9 @@ except NameError:
 
 class ReedSolomonError(Exception):
     pass
+    #def __init__(self, arg):
+    #    print(arg)
+    #    sys.exit(1)
 
 gf_exp = [0] * 512 # For efficiency, gf_exp[] has size 2*GF_SIZE, so that a simple multiplication of two numbers can be resolved without calling % 255. For more infos on how to generate this extended exponentiation table, see paper: "Fast software implementation of finite field operations", Cheng Huang and Lihao Xu, Washington University in St. Louis, Tech. Rep (2003).
 gf_log = [0] * 256
@@ -638,8 +643,8 @@ N_MAX = 255
 def test():
 
     prim = 0x11d
-    n = 255
-    k = 35
+    n = 20
+    k = 2
     message = DARTH_PLAGUEIS_SCRIPT
     message_list = []
 
@@ -659,5 +664,5 @@ def test():
 
 if __name__ == '__main__':
 
-    sample("hello world")
+    sample("Te saluto. Augustus sum, imperator et pontifex maximus romae. Si tu es Romae amicus, es gratus.")
     #test()

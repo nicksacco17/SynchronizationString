@@ -14,7 +14,12 @@ import distance as dist
 
 DEBUG_FLAG = False
 
-CSV_PATH = "D:\\RPC\\"
+NUM_ITERATIONS = 25
+MAX_WORD_SIZE = 50
+
+def pause(flag):
+    if flag:
+        input("Press Enter to continue...")
 
 class Synchronization_String():
 
@@ -47,6 +52,9 @@ class Synchronization_String():
             s.print_symbol(print_char = print_char, print_byte = print_byte, new_line = False)
         print()
 
+    def get_symbol(self, index):
+        return self.str[index]
+
     def get_intervals(self):
         
         for i in range(0, self.n + 1):
@@ -56,13 +64,16 @@ class Synchronization_String():
                         self.intervals_to_check.append((i, j, k))
                         self.num_itervals += 1
 
-    def print_interval(self, interval):
+    def get_substring(self, start_index, stop_index):
+        return self.str[start_index : stop_index]
+
+    def print_interval(self, interval, print_char = True, print_byte = True, new_line = False):
 
         i = interval[0]
         k = interval[2]
 
         for s in self.str[i : k]:
-            s.print_symbol(print_char = True, print_byte = True, new_line = False)
+            s.print_symbol(print_char = print_char, print_byte = print_byte, new_line = new_line)
         print()
 
     def verify_intervals(self):
@@ -119,7 +130,7 @@ class Synchronization_String():
             number_invalid_intervals = self.verify_intervals()
             total_number_invalid_intervals += number_invalid_intervals
 
-            #if iteration % 100 == 0:
+            #if iteration % 10 == 0:
             #    print("--> ITERATION = %d, NUMBER OF INVALID INTERVALS = %d" % (iteration, number_invalid_intervals))
 
             iteration += 1
@@ -140,13 +151,6 @@ class Synchronization_String():
     def get_string_representation(self):
         #return self.index_alphabet.convert_symbols_to_string(self.str)
         return "".join("(%s)" % s.get_id(get_char = False, get_byte = False) for s in self.str)
-
-def pause(flag):
-    if flag:
-        input("Press Enter to continue...")
-
-NUM_ITERATIONS = 25
-MAX_WORD_SIZE = 50
 
 def main_old():
 
@@ -267,40 +271,20 @@ def main_old():
 
     #S.decode(S_prime)
 
-
-if __name__ == '__main__':
-
-    #S = Synchronization_String(epsilon = 0.85, n = 4)
-    #print(S.alphabet_size)
-    #print(S.intervals_to_check)
-    #S.verify_synchronization()
-
-    #S.print_interval(interval = (0, 0, n))
-
-    #str_rep = S.get_string_representation()
-    #print(str_rep)
-
-    #pause(True)
-
-    main_directory = sys.argv[1]
+def generate_string_repo():
+    MAIN_DIRECTORY = os.path.join(sys.argv[1], "sync_string_data")
 
     header = ["STRING ID", "SYNC-STRING", "NUM ITERATIONS", "AVG NUM INVALID INTERVALS PER ITERATION", "CONSTRUCTON TIME"]
 
-    #header_epsilon = ['x'] + ['{0:.2f}'.format(0.05 * e) for e in range(1, 15)]
+    if not os.path.exists(MAIN_DIRECTORY):
+        os.makedirs(MAIN_DIRECTORY)
 
-    if not os.path.exists("sync_string_data"):
-        os.makedirs(CSV_PATH + "sync_string_data")
-
-    #DATA_PATH = CSV_PATH + "sync_string_data"
-    DATA_PATH = os.path.join(main_directory, "sync_string_data")
-    #sync_string_dictionary = DATA_PATH + "\\sync_str_dict.csv"
-
-    for n in range(10, 25, 5):
+    for n in range(30, 45, 5):
         
-        for e in range(1, 10):
+        for e in range(10, 12):
 
             epsilon = "{:0.4f}".format(0.05 * e)
-            file_name = os.path.join(DATA_PATH, "sync_str_%d_%s" % (n, epsilon[2 : ]))
+            file_name = os.path.join(MAIN_DIRECTORY, "sync_str_%d_%s" % (n, epsilon[2 : ]))
             #file_name = DATA_PATH + "\\sync_str_%d_%s" % (n, epsilon[2 : ])
             row_list = []
 
@@ -335,6 +319,31 @@ if __name__ == '__main__':
                 for row in row_list:
                     writer.writerow(row)
             csvfile.close()
+
+    #print(S.alphabet_size)
+    #print(S.intervals_to_check)
+    #S.verify_synchronization()
+
+    #S.print_interval(interval = (0, 0, n))
+
+    #str_rep = S.get_string_representation()
+    #print(str_rep)
+
+    #pause(True)
+
+    
+
+    #header_epsilon = ['x'] + ['{0:.2f}'.format(0.05 * e) for e in range(1, 15)]
+
+
+
+    
+
+    #DATA_PATH = CSV_PATH + "sync_string_data"
+    #DATA_PATH = os.path.join(main_directory, "sync_string_data")
+    #sync_string_dictionary = DATA_PATH + "\\sync_str_dict.csv"
+
+    
 
     #with open(sync_string_dictionary, 'w', newline = '') as csvfile:
     #    writer = csv.writer(csvfile, delimiter = ',')
@@ -403,3 +412,55 @@ if __name__ == '__main__':
     #print(S_prime)
 
     #S.decode(S_prime)
+
+def load_sync_str(n, epsilon, directory):
+
+    epsilon_str = "{:0.4f}".format(epsilon)
+    file_name = os.path.join(directory, "sync_str_%d_%s" % (n, epsilon_str[2 : ]))
+
+    row_list = []
+
+    with open(file_name, newline = '') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ',')
+        next(reader, None)
+        
+        for row in reader:
+            row_list.append(row)
+    csvfile.close()
+
+    rand_index = rand.randint(a = 0, b = len(row_list)-1)
+    str_sample = row_list[rand_index][1]
+    string_repr_list = []
+
+    i = 0
+    while i < len(str_sample):
+
+        if str_sample[i] == "(":
+            temp = ""
+        elif str_sample[i] == ")":
+            string_repr_list.append(temp)
+        else:
+            temp += str_sample[i]
+        i += 1
+    
+    S = Synchronization_String(epsilon = epsilon, n = n)
+    A = a.Alphabet(size = int(epsilon ** -4))
+
+    for i in range(0, n):
+        S.str[i] = A.get_symbol_by_index(index = int(string_repr_list[i]))
+
+    return S
+
+if __name__ == '__main__':
+
+    rand.seed(0x66023C)
+    MAIN_DIRECTORY = os.path.join(sys.argv[1], "sync_string_data")
+
+    S = load_sync_str(n = 30, epsilon = 0.5, directory = MAIN_DIRECTORY)
+    #generate_string_repo()
+
+    #S = Synchronization_String(epsilon = 0.5, n = 50)
+    #S.print_string()
+
+    #pause(True)
+    

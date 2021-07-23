@@ -12,15 +12,15 @@ def symbol_rsd(str1, str2):
 
         rsd_k = edit_distance(substring1, substring2) / (2*k)
 
-        print("SUBSTRING 1: ", end = "")
-        for s in substring1:
-            s.print_symbol(print_char = True, print_byte = True, new_line = False)
-        print()
-        print("SUBSTRING 2: ", end = "")
-        for s in substring2:
-            s.print_symbol(print_char = True, print_byte = True, new_line = False)
-        print()
-        print("RSD(str1, str2) = %0.3lf\n" % rsd_k)
+        #print("SUBSTRING 1: ", end = "")
+        #for s in substring1:
+        #    s.print_symbol(print_char = True, print_byte = True, new_line = False)
+        #print()
+        #print("SUBSTRING 2: ", end = "")
+        #for s in substring2:
+        #    s.print_symbol(print_char = True, print_byte = True, new_line = False)
+        #print()
+        #print("RSD(str1, str2) = %0.3lf\n" % rsd_k)
         #print("---> SUBSTRING 1 = %s, SUBSTRING 2 = %s, RSD = %0.2lf" % (substring1, substring2, rsd_k))
 
         if rsd_k > rsd:
