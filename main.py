@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import csv as csv
 import os as os
 import sys as sys
+import argparse as argparse
 import time as time
 
 import reed_solomon as rs
@@ -146,7 +147,7 @@ def old():
 def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = "FIXED"):
     
     # REED-SOLOMON PARAMETERS
-
+    
     prim = 0x011D
     rs.init_tables(prim)
     
@@ -396,7 +397,7 @@ def main():
     
 def fixed_error_model(message, n, k, alpha, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = "FIXED"):
 
-    original_message, recovered_message = insdel_communication(message, n, k, delta = alpha, epsilon = epsilon, scheme = scheme, load_str = load_str, path = path, error_model = error_model)
+    original_message, recovered_message = insdel_communication(message, n = n, k = k, delta = alpha, epsilon = epsilon, scheme = scheme, load_str = load_str, path = path, error_model = error_model)
 
     if original_message != -1 and recovered_message != -1 and original_message == recovered_message:
         return 0
@@ -419,6 +420,7 @@ def plot_error_curves(plot_directory, figure_directory, display = False, save = 
         alpha_row = [float(x) for x in alpha_row]
         data_row = [float(x) for x in data_row]
 
+        plt.figure()
         plt.plot(alpha_row, data_row, 'or-', linewidth = 1.5, markersize = 3.0)
         plt.xlabel('\N{greek small letter delta}')
         plt.ylabel("Prob. of error")
@@ -467,12 +469,13 @@ def test_suite_unique_indexing(n, plot_directory, number_rates, number_alpha_ste
         file_name = os.path.join(plot_directory, "p_error_delta_%s_rate_%s.csv" % ("{:0.3f}".format(delta)[2 : ], "{:0.3f}".format(RC)[2 : ]))
         single_test_unique_indexing(n = n, RC = RC, num_steps = number_alpha_steps, num_iterations = number_iterations, write_file = file_name, error_model = error_model, debug = debug)
 
-def single_test_unique_indexing(n, RC, num_steps, num_iterations, write_file, error_model = "FIXED", debug = False):
+def single_test_unique_indexing(n, RC, num_steps, num_iterations, write_file = None, error_model = "FIXED", debug = False):
 
     k = int(n * RC)
     delta_t = 1 - RC
 
     num_invalid_decodes = np.zeros(shape = num_steps, dtype = int)
+    prob_error = np.zeros(shape = num_steps, dtype = float)
     alpha_list = np.zeros(shape = num_steps, dtype = float)
 
     for i in range(0, num_steps):
@@ -487,38 +490,62 @@ def single_test_unique_indexing(n, RC, num_steps, num_iterations, write_file, er
             msg = "".join(rand.choices(string.printable, k = 500))
             num_invalid_decodes[i] += fixed_error_model(message = msg, n = n, k = k, alpha = alpha, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = error_model)
 
-        for k in range(0, len(num_invalid_decodes)):
-            num_invalid_decodes[k] /= num_iterations 
+        for m in range(0, len(num_invalid_decodes)):
+            prob_error[m] = num_invalid_decodes[m] / num_iterations
+
+    if write_file:
 
         with open(write_file, 'w', newline = '') as csvfile:
             writer = csv.writer(csvfile, delimiter = ',')
             writer.writerow(alpha_list)
-            writer.writerow(num_invalid_decodes)
+            writer.writerow(prob_error)
         csvfile.close()
 
-NUM_RATES = 10
-NUM_ALPHA_STEPS = 25
-NUM_ITERATIONS = 50
+#NUM_RATES = 10
+#NUM_ALPHA_STEPS = 10
+#NUM_ITERATIONS = 10
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("-directory")
+    parser.add_argument("-n")
+
+    parser.add_argument("-num_rates")
+    parser.add_argument("-num_steps")
+    parser.add_argument("-num_iterations")
+
+    args = parser.parse_args()
+
+    return args
 
 if __name__ == '__main__':
+
+    args = parse_arguments()    
+
+    MAIN_DIR = args.directory
+    n = int(args.n)
+    
+    NUM_RATES = int(args.num_rates)
+    NUM_ALPHA_STEPS = int(args.num_steps)
+    NUM_ITERATIONS = int(args.num_iterations)
 
     #main()
     
     rand.seed(0x66023C)
-    n = 30
 
-
-
-    PLOT_DIR = os.path.join(sys.argv[1], "plot_data")
+    #print(sys.argv[1])
+    PLOT_DIR = os.path.join(MAIN_DIR, "plot_data")
     if not os.path.exists(PLOT_DIR):
         os.makedirs(PLOT_DIR)
 
-    FIGURE_DIR = os.path.join(sys.argv[1], "figures")      
+    FIGURE_DIR = os.path.join(MAIN_DIR, "figures")      
     if not os.path.exists(FIGURE_DIR):
         os.makedirs(FIGURE_DIR)
 
-    test_suite_unique_indexing(n = n, plot_directory = PLOT_DIR, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, error_model = "IID", debug = True)
+    #single_test_unique_indexing(n = 30, RC = 0.5, num_steps = 10, num_iterations = 20, error_model = "IID", debug = True)
 
+    test_suite_unique_indexing(n = n, plot_directory = PLOT_DIR, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, error_model = "IID", debug = True)
     plot_error_curves(plot_directory = PLOT_DIR, figure_directory = FIGURE_DIR, display = False, save = True)
     
     

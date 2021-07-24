@@ -31,7 +31,7 @@ class InsDelChannel():
         rx_tuple_array = []
 
         if self.max_errors == 0:
-                return tx_tuple_array
+            return tx_tuple_array
 
         if self.error_model == "FIXED":
 
