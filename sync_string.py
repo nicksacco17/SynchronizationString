@@ -28,7 +28,7 @@ class Synchronization_String():
         self.ed_prefactor = 1.0 - self.epsilon
         self.n = n
 
-        self.alphabet_size = int(math.ceil(1.0 / self.epsilon ** 4))
+        self.alphabet_size = int(self.epsilon ** -4)
         self.index_alphabet = a.Alphabet(size = self.alphabet_size)
 
         self.str = np.empty(shape = self.n, dtype = a.Symbol)

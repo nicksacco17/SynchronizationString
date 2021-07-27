@@ -744,7 +744,7 @@ if __name__ == '__main__':
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
-    #generate_sync_string(n = n, epsilon = 0.32988, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
+    generate_sync_string(n = n, epsilon = 0.32988, num_strings = 10, data_directory = SYNC_STR_DIR, debug = True)
 
     #test_suite(n = n, epsilon = 0, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, 
     #            scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = True, log_path = LOG_DIR)
