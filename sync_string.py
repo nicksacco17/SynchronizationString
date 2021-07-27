@@ -368,8 +368,8 @@ def main_old():
 
 def load_sync_str(n, epsilon, directory):
 
-    epsilon_str = "{:0.4f}".format(epsilon)
-    file_name = os.path.join(directory, "sync_str_%d_%s" % (n, epsilon_str[2 : ]))
+    epsilon_str = "{:0.5f}".format(epsilon)
+    file_name = os.path.join(directory, "sync_str_n_%d_epsilon_%s" % (n, epsilon_str[2 : ]))
 
     row_list = []
 

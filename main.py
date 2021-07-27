@@ -744,15 +744,15 @@ if __name__ == '__main__':
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
-    generate_sync_string(n = n, epsilon = 0.32988, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
+    #generate_sync_string(n = n, epsilon = 0.32988, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
 
     #test_suite(n = n, epsilon = 0, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, 
     #            scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = True, log_path = LOG_DIR)
-    #TEST_DIRECTORY = single_test(n = n, epsilon = 0.5, RC = 0.60, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
-    #                            scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, 
-    #                            debug = False, log = True, log_path = LOG_DIR)
+    TEST_DIRECTORY = single_test(n = n, epsilon = 0.32988, RC = 0.50, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
+                                scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, 
+                                debug = False, log = True, log_path = LOG_DIR)
 
-    #plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = True, save = True)
+    plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = False, save = True)
     #plot_prob_error(data_directory = "d:\\RPC\\log_data\\UNIQUE_FIXED_n_30_rate_25000_delta_crit_75000", output_figure_directory = FIGURE_DIR, display = False, save = True)
 
     '''
