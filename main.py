@@ -25,6 +25,15 @@ def pause(flag):
 
 DEBUG_FLAG = False
 
+def error_sim(message, n, k, alpha, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = "FIXED"):
+
+    original_message, recovered_message = insdel_communication(message, n = n, k = k, delta = alpha, epsilon = epsilon, scheme = scheme, load_str = load_str, path = path, error_model = error_model)
+
+    if original_message != -1 and recovered_message != -1 and original_message == recovered_message:
+        return 0
+    else:
+        return 1
+
 def old():
     # Test string to transmit
     m_string = "Te saluto.  Augustus sum, imperator et pontifex maximus romae.  Si tu es Romae amicus, es gratus."
@@ -144,7 +153,7 @@ def old():
 
     print("TOTAL NUMBER OF INTRODUCED ERRORS = %d" % total_num_errors)
 
-def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = "FIXED"):
+def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = False, log_path = None):
     
     # REED-SOLOMON PARAMETERS
     
@@ -170,6 +179,12 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
 
     recovered_message_list = []                     # List of recovered messages of length k
 
+    RC = (1.0 * k) / n
+    delta_crit = 1.0 - RC
+    log_file_name = os.path.join(log_path, "alpha_%s_epsilon_%s.csv" % ("{:0.5f}".format(delta)[2 : ], "{:0.5f}".format(epsilon)[2 : ]))
+    #log_file_name = os.path.join(log_path, "%s_%s_rate_%s_delta_crit_%s_alpha_%s_epsilon_%s.csv" % (scheme, error_model, "{:0.5f}".format(RC)[2 : ], "{:0.5f}".format(delta_crit)[2 : ], "{:0.5f}".format(delta)[2 : ], "{:0.5f}".format(epsilon)[2 : ]))
+    log_header = ["FORMATTING TIME", "RS-ENC TIME", "SYMBOL ENCODING TIME", "ATTACHING INDEX TIME", "TRANSMISSION TIME", "INDEX DECODING TIME", "NUMBER ERASURES", "RS-DEC TIME", "NUMBER OF INVALID DECODES", "OVERALL VALID DECODE"]
+    log_row = []
     # ------------------------------------------------------------------------------------------------------------------
     # STEP 1: FORMAT THE ORIGINAL MESSAGE AS A LIST OF MESSAGES OF LENGTH k 
     # ------------------------------------------------------------------------------------------------------------------
@@ -182,8 +197,10 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
         # This string is virtually identical to base message, just includes trailing spaces for alignment purposes.
         original_message = "".join(msg for msg in message_list)
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("FORMATTING TIME = %lf sec" % (stop_time - start_time))
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -199,9 +216,10 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
         codeword = "".join(chr(x) for x in mesecc)
         codeword_list.append(codeword)
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("RS-ENC TIME = %lf sec" % (stop_time - start_time))
-
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -217,8 +235,10 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
         symbol_codeword = source_alphabet.convert_string_to_symbols(codeword)
         symbol_codeword_list.append(symbol_codeword)
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("SYMBOL ENCODING TIME = %lf sec" % (stop_time - start_time))
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
     
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -228,14 +248,16 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
     # ------------------------------------------------------------------------------------------------------------------
 
     start_time = time.time()
-    txmitter = tx.Transmitter(transmission_length = n, epsilon = epsilon, indexing_scheme = scheme, load_str = load_str, path = path)
+    txmitter = tx.Transmitter(transmission_length = n, epsilon = epsilon, indexing_scheme = scheme, load_str = load_str, load_str_path = load_str_path)
 
     for codeword in symbol_codeword_list:
         tx_tuples = txmitter.create_transmission_tuple(codeword)
         tx_tuple_list.append(tx_tuples)
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("ATTACHING INDEX TIME = %lf sec" % (stop_time - start_time))
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -257,8 +279,10 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
         rx_tuple_list.append(rx_tuples)
 
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("TRANSMISSION TIME = %lf sec" % (stop_time - start_time))
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
 
     #for tuple_stream in enumerate(rx_tuple_list):
     #    print("---------- STREAM %d ----------, LENGTH = %d" % (tuple_stream[0], len(tuple_stream[1])))
@@ -280,10 +304,12 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
     #for s in corrupted_datastream:
     #    s.print_symbol(print_char = False, print_byte = False, new_line = False)
 
+    overall_erasure_counts = []
     for rx_stream in enumerate(rx_tuple_list):
-        #print("Decoding %d/%d..." % (rx_stream[0]+1, len(rx_tuple_list)))
-        corrupted_datastream = decoder.decode(rx_stream[1])
-
+        if debug or log and scheme == "SYNC":
+            print("Decoding %d/%d..." % (rx_stream[0]+1, len(rx_tuple_list)))
+        corrupted_datastream, erasure_count = decoder.decode(rx_stream[1])
+        overall_erasure_counts.append(erasure_count)
         #print("Transmitted...")
         #for s in symbol_codeword_list[rx_stream[0]]:
         #    s.print_symbol(print_char = True, print_byte = False, new_line = False)
@@ -298,8 +324,11 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
 
     #print()
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("INDEX DECODING TIME = %lf sec" % (stop_time - start_time))
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
+        log_row.append(overall_erasure_counts)
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -307,6 +336,9 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
     # ------------------------------------------------------------------------------------------------------------------
     # STEP 8: REED-SOLOMON DECODING
     # ------------------------------------------------------------------------------------------------------------------
+
+    DECODING_ERRORS = 0
+    VALID_RESULT = 1
 
     start_time = time.time()
     for entry in corrupted_codewords_list:
@@ -316,22 +348,48 @@ def insdel_communication(message, n, k, delta, epsilon = 0, scheme = "UNIQUE", l
         rs_formatted_word = [ord(x) for x in corrupted_codeword]
         rs_rx_codewords.append(rs_formatted_word)
 
+        # Try to decode each codeword - if successful, continue
         try:
             corrected_message, corrected_ecc = rs.rs_correct_msg(rs_formatted_word, n-k, erase_pos = erasure_locations)
             recovered_message_list.append("".join(chr(x) for x in corrected_message))
 
+        # Else the codeword could not be decoded, so mark the overall result as invalid and count the number of codewords that could not be decoded
         except:
-            return -1, -1
+            VALID_RESULT = 0
+            DECODING_ERRORS += 1
     stop_time = time.time()
-    if DEBUG_FLAG:
+    if debug:
         print("RS-DEC TIME = %lf sec" % (stop_time - start_time))
+    if log:
+        log_row.append("{:0.5f}".format(stop_time - start_time))
+        log_row.append(DECODING_ERRORS)
+        log_row.append(VALID_RESULT)
+
+    if log:
+
+        # If the file does not exist yet, create it and append the header
+        if not os.path.exists(log_file_name):
+
+            with open(log_file_name, 'a', newline = '') as csvfile:
+                writer = csv.writer(csvfile, delimiter = ',')
+                writer.writerow(log_header)
+            csvfile.close()
+
+        # If here, the file should exist now so just append data rows, no need to append header
+        with open(log_file_name, 'a', newline = '') as csvfile:
+            writer = csv.writer(csvfile, delimiter = ',')
+            writer.writerow(log_row)
+        csvfile.close()
+        
+
+
 
     # ------------------------------------------------------------------
     # STEP 9: RETURN ORIGINAL DATA
     # ------------------------------------------------------------------
 
     recovered_message = "".join(s for s in recovered_message_list)
-    return original_message, recovered_message
+    return original_message, recovered_message, VALID_RESULT
 
     # ----------------------------------------------------------------------------------------------------------
     # ----------------------------------------------------------------------------------------------------------
@@ -378,7 +436,7 @@ def main():
     assert delta < delta_rs_max, "[ERROR] CHANNEL FIDELITY TOO HIGH"
 
     start_time = time.time()
-    original_message, recovered_message = insdel_communication(message, n, k, delta, epsilon, scheme = "SYNC", load_str = True, path = LOAD_DIR, error_model = "FIXED")
+    original_message, recovered_message = insdel_communication(message, n, k, delta, epsilon, scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = LOAD_DIR, debug = True, log = False, log_path = None)
     stop_time = time.time()
     total_time = stop_time - start_time
 
@@ -395,20 +453,76 @@ def main():
         print("********** COULD NOT DECODE **********")
         pause(True)
     
-def fixed_error_model(message, n, k, alpha, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = "FIXED"):
+def plot_prob_error(data_directory, output_figure_directory, display = False, save = True):
 
-    original_message, recovered_message = insdel_communication(message, n = n, k = k, delta = alpha, epsilon = epsilon, scheme = scheme, load_str = load_str, path = path, error_model = error_model)
+    print(output_figure_directory)
+    base_name_tokens = os.path.basename(data_directory).split(sep = '_')
 
-    if original_message != -1 and recovered_message != -1 and original_message == recovered_message:
-        return 0
-    else:
-        return 1
+    scheme = base_name_tokens[0]
+    error_mode = base_name_tokens[1]
+    n = int(base_name_tokens[3])
+    rate = float(base_name_tokens[5]) / (10e4)
+    delta_crit = float(base_name_tokens[-1]) / (10e4)
 
+    num_alphas = len(os.listdir(data_directory))
+    alpha_list = np.zeros(shape = num_alphas, dtype = float)
+    num_invalid_decodes = np.zeros(shape = num_alphas, dtype = float)
+    p_error = np.zeros(shape = num_alphas, dtype = float)
+
+    for data in enumerate(os.listdir(data_directory)):
+
+        i = data[0]
+
+        name = data[1].split(sep = '.')
+  
+        file_name = os.path.join(data_directory, data[1])
+
+        tokens = name[0].split(sep = '_')
+
+        alpha = float(tokens[1]) / (10e4)
+        epsilon = float(tokens[-1]) / (10e4)
+
+        alpha_list[i] = alpha
+
+        row_list = []
+        with open(file_name, newline = '') as csvfile:
+            reader = csv.reader(csvfile, delimiter = ',')
+            header = next(reader)
+            for row in reader:
+                row_list.append(row)
+        csvfile.close()
+
+        for row in row_list:
+            if int(row[-1]) == 0:
+                num_invalid_decodes[i] += 1
+        num_it = len(row_list)
+
+    for m in range(0, len(num_invalid_decodes)):
+        p_error[m] = num_invalid_decodes[m] / num_it
+    
+    plt.figure()
+    plt.plot(alpha_list, p_error, 'r-', linewidth = 1.5, markersize = 1.0)
+    plt.xlabel('\N{greek small letter delta}')
+    plt.ylabel("Prob. of error")
+    plt.title("Prob. of error vs. \N{greek small letter delta} for critical threshold $\N{greek small letter delta}_t$ = %s" % delta_crit)
+
+    plt.xlim(0, 1)
+    plt.ylim(0, 1.1)
+
+    if save:     
+        print("SAVING FIGURE " + os.path.basename(data_directory))
+        figure_out = os.path.join(output_figure_directory, os.path.basename(data_directory) + "_figure.png")
+        plt.savefig(figure_out)
+
+    if display:
+        plt.show()
+    
+    
 def plot_error_curves(plot_directory, figure_directory, display = False, save = True):
 
     for plot_data in os.listdir(plot_directory):
 
-        delta_t = plot_data.split(sep = '_')[3]
+        delta_t = float(plot_data.split(sep = '_')[3])/1000
         file_name = os.path.join(plot_directory, plot_data)
         
         with open(file_name, newline = '') as csvfile:
@@ -421,20 +535,20 @@ def plot_error_curves(plot_directory, figure_directory, display = False, save = 
         data_row = [float(x) for x in data_row]
 
         plt.figure()
-        plt.plot(alpha_row, data_row, 'or-', linewidth = 1.5, markersize = 3.0)
+        plt.plot(alpha_row, data_row, 'r-', linewidth = 1.5, markersize = 1.0)
         plt.xlabel('\N{greek small letter delta}')
         plt.ylabel("Prob. of error")
-        plt.title("Prob. of error vs. \N{greek small letter delta} for critical value $\N{greek small letter delta}_t$ = %s" % delta_t)
+        plt.title("Prob. of error vs. \N{greek small letter delta} for critical threshold $\N{greek small letter delta}_t$ = %s" % delta_t)
     
         plt.xlim(0, 1)
         plt.ylim(0, 1.1)
 
-        if display:
-            plt.show()
         if save:
             print("SAVING FIGURE " + os.path.splitext(plot_data)[0])
             figure_out = os.path.join(figure_directory, os.path.splitext(plot_data)[0] + "_figure.png")
             plt.savefig(figure_out)
+        if display:
+            plt.show()
 
     #with open(file_name, newline = '') as csvfile:
     #    reader = csv.reader(csvfile, delimiter = ', ')
@@ -456,26 +570,33 @@ def plot_error_curves(plot_directory, figure_directory, display = False, save = 
     #    for row in reader:
     #        print(" ".join(row))
 
-def test_suite_unique_indexing(n, plot_directory, number_rates, number_alpha_steps, number_iterations, error_model = "FIXED", debug = False):
+def test_suite(n, epsilon, number_rates, number_alpha_steps, number_iterations, scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = False, log_path = None):
 
     for rate in range(number_rates - 1, 0, -1):
 
         RC = (1.0 / number_rates) * rate
         delta = 1 - RC
 
-        if debug:
-            print("RATE = %0.3lf; CRITICAL DELTA = %0.3lf" % (RC, delta))
+        print("RATE = %0.3lf; CRITICAL DELTA = %0.3lf" % (RC, delta))
 
-        file_name = os.path.join(plot_directory, "p_error_delta_%s_rate_%s.csv" % ("{:0.3f}".format(delta)[2 : ], "{:0.3f}".format(RC)[2 : ]))
-        single_test_unique_indexing(n = n, RC = RC, num_steps = number_alpha_steps, num_iterations = number_iterations, write_file = file_name, error_model = error_model, debug = debug)
+        #file_name = os.path.join(data_directory, "p_error_delta_%s_rate_%s.csv" % ("{:0.3f}".format(delta)[2 : ], "{:0.3f}".format(RC)[2 : ]))
+        single_test(n, epsilon, RC, number_alpha_steps, number_iterations, scheme, error_model, load_str, load_str_path, debug, log, log_path)
 
-def single_test_unique_indexing(n, RC, num_steps, num_iterations, write_file = None, error_model = "FIXED", debug = False):
+def single_test(n, epsilon, RC, num_steps, num_iterations, scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = False, log_path = None):
 
     k = int(n * RC)
     delta_t = 1 - RC
 
-    num_invalid_decodes = np.zeros(shape = num_steps, dtype = int)
-    prob_error = np.zeros(shape = num_steps, dtype = float)
+    if log_path:
+        TEST_DIRECTORY = os.path.join(log_path, "%s_%s_n_%d_rate_%s_delta_crit_%s" % (scheme, error_model, n, "{:0.5f}".format(RC)[2 : ], "{:0.5f}".format(delta_t)[2 : ]))
+        print(TEST_DIRECTORY)
+        if not os.path.exists(TEST_DIRECTORY):
+            os.makedirs(TEST_DIRECTORY)
+    else:
+        TEST_DIRECTORY = None
+
+    #num_invalid_decodes = np.zeros(shape = num_steps, dtype = int)
+    #prob_error = np.zeros(shape = num_steps, dtype = float)
     alpha_list = np.zeros(shape = num_steps, dtype = float)
 
     for i in range(0, num_steps):
@@ -483,23 +604,32 @@ def single_test_unique_indexing(n, RC, num_steps, num_iterations, write_file = N
         alpha = (1.0 / num_steps) * i
         alpha_list[i] = "{:0.5f}".format(alpha)
 
-        if debug:
-            print("--> ALPHA = %0.3lf" % alpha)
+        print("--> ALPHA = %0.3lf" % alpha)
 
         for j in range(0, num_iterations):
-            msg = "".join(rand.choices(string.printable, k = 500))
-            num_invalid_decodes[i] += fixed_error_model(message = msg, n = n, k = k, alpha = alpha, epsilon = 0, scheme = "UNIQUE", load_str = False, path = None, error_model = error_model)
+            msg = "".join(rand.choices(string.printable, k = 50))
+            #msg = "Te saluto. Augustus sum, imperator et pontifex maximus romae. Si tu es Romae amicus, es gratus."
+            orig_msg, rec_msg, error_count = insdel_communication(msg, n, k, alpha, epsilon, scheme, error_model, load_str, load_str_path, debug, log, TEST_DIRECTORY)
+            
+            #print(orig_msg)
+            #print(rec_msg)
+            #orig_msg, rec_msg, error_count = insdel_communication(message = msg, n = n, k = k, delta = alpha, epsilon = epsilon, scheme = scheme, error_model = error_model, load_str = load_str, load_str_path = load_str_path, debug = debug, log = log, log_path = log_path)
+            
+            #num_invalid_decodes[i] += error_count
 
-        for m in range(0, len(num_invalid_decodes)):
-            prob_error[m] = num_invalid_decodes[m] / num_iterations
+        #for m in range(0, len(num_invalid_decodes)):
+        #    prob_error[m] = num_invalid_decodes[m] / num_iterations
+    if TEST_DIRECTORY:
+        return TEST_DIRECTORY
+    else:
+        return "-1"
+    #if write_file:
 
-    if write_file:
-
-        with open(write_file, 'w', newline = '') as csvfile:
-            writer = csv.writer(csvfile, delimiter = ',')
-            writer.writerow(alpha_list)
-            writer.writerow(prob_error)
-        csvfile.close()
+    #    with open(write_file, 'w', newline = '') as csvfile:
+    #        writer = csv.writer(csvfile, delimiter = ',')
+    #        writer.writerow(alpha_list)
+    #        writer.writerow(prob_error)
+    #    csvfile.close()
 
 #NUM_RATES = 10
 #NUM_ALPHA_STEPS = 10
@@ -524,17 +654,22 @@ if __name__ == '__main__':
     args = parse_arguments()    
 
     MAIN_DIR = args.directory
-    n = int(args.n)
+    if args.n:
+        n = int(args.n)
     
-    NUM_RATES = int(args.num_rates)
-    NUM_ALPHA_STEPS = int(args.num_steps)
-    NUM_ITERATIONS = int(args.num_iterations)
+    if args.num_rates:
+        NUM_RATES = int(args.num_rates)
+
+    if args.num_steps:
+        NUM_ALPHA_STEPS = int(args.num_steps)
+    
+    if args.num_iterations:
+        NUM_ITERATIONS = int(args.num_iterations)
 
     #main()
     
     rand.seed(0x66023C)
 
-    #print(sys.argv[1])
     PLOT_DIR = os.path.join(MAIN_DIR, "plot_data")
     if not os.path.exists(PLOT_DIR):
         os.makedirs(PLOT_DIR)
@@ -543,10 +678,75 @@ if __name__ == '__main__':
     if not os.path.exists(FIGURE_DIR):
         os.makedirs(FIGURE_DIR)
 
-    #single_test_unique_indexing(n = 30, RC = 0.5, num_steps = 10, num_iterations = 20, error_model = "IID", debug = True)
+    SYNC_STR_DIR = os.path.join(MAIN_DIR, "sync_string_data")
+    if not os.path.exists(SYNC_STR_DIR):
+        os.makedirs(SYNC_STR_DIR)
 
-    test_suite_unique_indexing(n = n, plot_directory = PLOT_DIR, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, error_model = "IID", debug = True)
-    plot_error_curves(plot_directory = PLOT_DIR, figure_directory = FIGURE_DIR, display = False, save = True)
+    LOG_DIR = os.path.join(MAIN_DIR, "log_data")
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR)
+
+    #test_suite(n = n, epsilon = 0, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, 
+    #            scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = True, log_path = LOG_DIR)
+    TEST_DIRECTORY = single_test(n = n, epsilon = 0.5, RC = 0.60, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
+                                scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, 
+                                debug = False, log = True, log_path = LOG_DIR)
+
+    plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = True, save = True)
+    #plot_prob_error(data_directory = "d:\\RPC\\log_data\\UNIQUE_FIXED_n_30_rate_25000_delta_crit_75000", output_figure_directory = FIGURE_DIR, display = False, save = True)
+
+    '''
+    message = rs.DARTH_PLAGUEIS_SCRIPT
+    #message = "hello world"
+    #message = "Te saluto. Augustus sum, imperator et pontifex maximus romae. Si tu es Romae amicus, es gratus."
+    # Reed-Solomon Parametesr
+    n = 30
+    k = 5
+    assert n > k, "[ERROR] PARAMETERS NOT VALID, n MUST BE GREATER THAN k!"
+
+    # Synchronization Parameters
+    delta_rs_max = 1 - k/n
+    print(delta_rs_max)
+    #delta = (5.0/36)
+    delta = 0.5
+    epsilon = 0.5
+
+    #assert delta < delta_rs_max, "[ERROR] CHANNEL FIDELITY TOO HIGH"
+
+    start_time = time.time()
+    original_message, recovered_message, error_decode = insdel_communication(message, n, k, delta, epsilon, 
+                                                                            scheme = "UNIQUE", 
+                                                                            error_model = "FIXED", 
+                                                                            load_str = True, 
+                                                                            load_str_path = SYNC_STR_DIR, 
+                                                                            debug = True, 
+                                                                            log = True, 
+                                                                            log_path = LOG_DIR)
+    stop_time = time.time()
+    total_time = stop_time - start_time
+
+    print("COMMUNICATION OVER INSDEL CHANNEL W/FIDELITY %0.3lf COMPLETE; TOTAL TIME = %lf sec" % (delta, total_time))
+
+    if original_message != -1 and recovered_message != -1:
+
+        print("--> TRANSMITTED MESSAGE: " + original_message)
+        print("--> RECEIVED MESSAGE: " + recovered_message)
+
+        if original_message == recovered_message:
+            print("COMMUNICATION SUCCESSFUL!")
+    else:
+        print("********** COULD NOT DECODE **********")
+        pause(True)
+    '''
+
+
+    #file_name = os.path.join(PLOT_DIR, "p_error_delta_%s_rate_%s.csv" % ("{:0.3f}".format(0.75)[2 : ], "{:0.3f}".format(0.25)[2 : ]))
+    #single_test_unique_indexing(n = 30, epsilon = 0.5, RC = 0.25, num_steps = 10, num_iterations = 10, write_file = file_name, scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, debug = True, log = False, log_path = False)    
+    #single_test_unique_indexing(n = n, epsilon = 0.5, RC = 0.25, num_steps = 20, num_iterations = 20, error_model = "FIXED", debug = True)
+
+    
+    #test_suite_unique_indexing(n = n, plot_directory = PLOT_DIR, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, error_model = "IID", debug = True)
+    #plot_error_curves(plot_directory = PLOT_DIR, figure_directory = FIGURE_DIR, display = True, save = False)
     
     
 '''

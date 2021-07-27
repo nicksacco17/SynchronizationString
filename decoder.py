@@ -16,6 +16,7 @@ class Decoder():
     def decode(self, rx_tuple_array):
 
         corrupted_word = np.empty(shape = self.transmission_length, dtype = a.Symbol)
+        erasure_count = 0
 
         #for k in range(0, len(rx_tuple_array)):
         #    print(rx_tuple_array[k].index_symbol.get_id())
@@ -42,6 +43,7 @@ class Decoder():
                 # Else if the count is NOT 1 then there was a deletion (counter == 0) or an insertion (counter > 1), so insert erasure
                 else:
                     corrupted_word[s[0]] = a.Symbol(symbol_id = -1, erasure = True)
+                    erasure_count += 1
         
         # Minimum RSD decoding via synchroniztion strings
         elif self.indexing_scheme == "SYNC":
@@ -110,12 +112,12 @@ class Decoder():
                     corrupted_word[k] = rx_tuple_array[last_valid_index].message_symbol
                 else:
                     corrupted_word[k] = a.Symbol(symbol_id = -1, erasure = True)
-            
-            #for s in corrupted_word:
-            #    s.print_symbol(print_char = True, print_byte = False, new_line = False)
-            #print()
-
-        return corrupted_word
+                    erasure_count += 1
+             
+        #for s in corrupted_word:
+            #s.print_symbol(print_char = True, print_byte = False, new_line = False)
+        #print()
+        return corrupted_word, erasure_count
 '''     
             for k in range(0, len(corrupted_word)):
 

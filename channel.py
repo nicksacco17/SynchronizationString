@@ -38,6 +38,7 @@ class InsDelChannel():
             available_indices = [x for x in range(0, len(tx_tuple_array))]
 
             error_indices = rand.sample(list(available_indices), k = self.max_errors)
+            #print(error_indices)
 
             assert len(error_indices) == self.max_errors, "[ERROR], SOME ENTRIES ARE DUPLICATES!"
 

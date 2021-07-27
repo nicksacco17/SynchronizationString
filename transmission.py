@@ -14,7 +14,7 @@ class Tuple():
 
 class Transmitter():
 
-    def __init__(self, transmission_length, epsilon = 0.5, indexing_scheme = "UNIQUE", load_str = False, path = None):
+    def __init__(self, transmission_length, epsilon = 0.5, indexing_scheme = "UNIQUE", load_str = False, load_str_path = None):
 
         self.transmission_length = transmission_length
         self.indexing_scheme = indexing_scheme
@@ -30,7 +30,7 @@ class Transmitter():
         elif self.indexing_scheme == "SYNC":
             
             if load_str:
-                self.sync_str = sync.load_sync_str(n = self.transmission_length, epsilon = epsilon, directory = path)
+                self.sync_str = sync.load_sync_str(n = self.transmission_length, epsilon = epsilon, directory = load_str_path)
                 self.sync_str.print_string(print_char = False, print_byte = False)
             else:
                 self.sync_str = sync.Synchronization_String(epsilon = epsilon, n = self.transmission_length)
