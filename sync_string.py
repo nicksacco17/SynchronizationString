@@ -271,54 +271,7 @@ def main_old():
 
     #S.decode(S_prime)
 
-def generate_string_repo():
-    MAIN_DIRECTORY = os.path.join(sys.argv[1], "sync_string_data")
 
-    header = ["STRING ID", "SYNC-STRING", "NUM ITERATIONS", "AVG NUM INVALID INTERVALS PER ITERATION", "CONSTRUCTON TIME"]
-
-    if not os.path.exists(MAIN_DIRECTORY):
-        os.makedirs(MAIN_DIRECTORY)
-
-    for n in range(30, 45, 5):
-        
-        for e in range(10, 12):
-
-            epsilon = "{:0.4f}".format(0.05 * e)
-            file_name = os.path.join(MAIN_DIRECTORY, "sync_str_%d_%s" % (n, epsilon[2 : ]))
-            #file_name = DATA_PATH + "\\sync_str_%d_%s" % (n, epsilon[2 : ])
-            row_list = []
-
-            print("---------- STRING LENGTH = %d, EPSILON = %0.2lf ----------" % (n, 0.05 * e))
-            
-            for i in range(0, 50):
-
-                row = [str(i)]
-
-                S = Synchronization_String(epsilon = 0.05 * e, n = n)
-                
-                start_time = time.time()
-                total_iterations, avg_invalid_intervals = S.verify_synchronization()
-                stop_time = time.time()
-
-                str_rep = S.get_string_representation()
-
-                construction_time = stop_time - start_time
-
-                row.append(str_rep)
-                row.append(total_iterations)
-                row.append("{:0.4f}".format(avg_invalid_intervals))
-                row.append("{:0.5e}".format(construction_time))
-                row_list.append(row)
-
-                print("--> STRING %d, CONSTRUCTION TIME = %lf sec" % (i, construction_time))
-            
-            with open(file_name, 'w', newline = '') as csvfile:
-                writer = csv.writer(csvfile, delimiter = ',')
-                writer.writerow(header)
-
-                for row in row_list:
-                    writer.writerow(row)
-            csvfile.close()
 
     #print(S.alphabet_size)
     #print(S.intervals_to_check)

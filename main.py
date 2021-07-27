@@ -1,4 +1,5 @@
 
+# python main.py -directory d:\\RPC -n 30 -num_rates 10 -num_steps 50 -num_iterations 1
 #import hamming
 import numpy as np
 import math as math
@@ -517,7 +518,6 @@ def plot_prob_error(data_directory, output_figure_directory, display = False, sa
     if display:
         plt.show()
     
-    
 def plot_error_curves(plot_directory, figure_directory, display = False, save = True):
 
     for plot_data in os.listdir(plot_directory):
@@ -589,7 +589,7 @@ def single_test(n, epsilon, RC, num_steps, num_iterations, scheme = "UNIQUE", er
 
     if log_path:
         TEST_DIRECTORY = os.path.join(log_path, "%s_%s_n_%d_rate_%s_delta_crit_%s" % (scheme, error_model, n, "{:0.5f}".format(RC)[2 : ], "{:0.5f}".format(delta_t)[2 : ]))
-        print(TEST_DIRECTORY)
+        #print(TEST_DIRECTORY)
         if not os.path.exists(TEST_DIRECTORY):
             os.makedirs(TEST_DIRECTORY)
     else:
@@ -649,6 +649,64 @@ def parse_arguments():
 
     return args
 
+def generate_sync_string(n, epsilon = 0.5, num_strings = 50, data_directory = None, debug = False):
+    
+    header = ["STRING ID", "SYNC-STRING", "NUM ITERATIONS", "AVG NUM INVALID INTERVALS PER ITERATION", "CONSTRUCTON TIME"]
+    row_list = []
+
+    if debug:
+        print("---------- STRING LENGTH = %d, EPSILON = %0.3lf ----------" % (n, epsilon))
+
+    file_name = os.path.join(data_directory, "sync_str_n_%d_epsilon_%s" % (n, "{:0.5f}".format(epsilon)[2:]))
+
+    for i in range(0, num_strings):
+        row = [str(i)]
+
+        S = sync.Synchronization_String(epsilon = epsilon, n = n)
+                
+        start_time = time.time()
+        total_iterations, avg_invalid_intervals = S.verify_synchronization()
+        stop_time = time.time()
+
+        str_rep = S.get_string_representation()
+
+        construction_time = stop_time - start_time
+
+        row.append(str_rep)
+        row.append(total_iterations)
+        row.append("{:0.4f}".format(avg_invalid_intervals))
+        row.append("{:0.5e}".format(construction_time))
+        row_list.append(row)
+
+        if debug:
+            print("--> STRING %d, CONSTRUCTION TIME = %lf sec" % (i, construction_time))
+    
+    with open(file_name, 'w', newline = '') as csvfile:
+        writer = csv.writer(csvfile, delimiter = ',')
+        writer.writerow(header)
+
+        for row in row_list:
+            writer.writerow(row)
+    csvfile.close()
+
+def generate_string_repo():
+    
+    for n in range(30, 45, 5):
+        
+        for e in range(10, 12):
+
+            epsilon = "{:0.4f}".format(0.05 * e)
+            file_name = os.path.join(MAIN_DIRECTORY, "sync_str_%d_%s" % (n, epsilon[2 : ]))
+            #file_name = DATA_PATH + "\\sync_str_%d_%s" % (n, epsilon[2 : ])
+            row_list = []
+
+            
+            
+            for i in range(0, 50):
+
+                row = [str(i)]
+
+                
 if __name__ == '__main__':
 
     args = parse_arguments()    
@@ -686,13 +744,15 @@ if __name__ == '__main__':
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
+    generate_sync_string(n = n, epsilon = 0.32988, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
+
     #test_suite(n = n, epsilon = 0, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, 
     #            scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = True, log_path = LOG_DIR)
-    TEST_DIRECTORY = single_test(n = n, epsilon = 0.5, RC = 0.60, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
-                                scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, 
-                                debug = False, log = True, log_path = LOG_DIR)
+    #TEST_DIRECTORY = single_test(n = n, epsilon = 0.5, RC = 0.60, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
+    #                            scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, 
+    #                            debug = False, log = True, log_path = LOG_DIR)
 
-    plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = True, save = True)
+    #plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = True, save = True)
     #plot_prob_error(data_directory = "d:\\RPC\\log_data\\UNIQUE_FIXED_n_30_rate_25000_delta_crit_75000", output_figure_directory = FIGURE_DIR, display = False, save = True)
 
     '''
