@@ -462,8 +462,8 @@ def plot_prob_error(data_directory, output_figure_directory, display = False, sa
     scheme = base_name_tokens[0]
     error_mode = base_name_tokens[1]
     n = int(base_name_tokens[3])
-    rate = float(base_name_tokens[5]) / (10e4)
-    delta_crit = float(base_name_tokens[-1]) / (10e4)
+    rate = float(base_name_tokens[5]) / (1e5)
+    delta_crit = float(base_name_tokens[-1]) / (1e5)
 
     num_alphas = len(os.listdir(data_directory))
     alpha_list = np.zeros(shape = num_alphas, dtype = float)
@@ -480,8 +480,8 @@ def plot_prob_error(data_directory, output_figure_directory, display = False, sa
 
         tokens = name[0].split(sep = '_')
 
-        alpha = float(tokens[1]) / (10e4)
-        epsilon = float(tokens[-1]) / (10e4)
+        alpha = float(tokens[1]) / (1e5)
+        epsilon = float(tokens[-1]) / (1e5)
 
         alpha_list[i] = alpha
 
@@ -501,8 +501,26 @@ def plot_prob_error(data_directory, output_figure_directory, display = False, sa
     for m in range(0, len(num_invalid_decodes)):
         p_error[m] = num_invalid_decodes[m] / num_it
     
+    paired_list = []
+    sorted_alpha = []
+    sorted_perror = []
+    assert len(alpha_list) == len(p_error), "[ERROR], ARRAYS DO NOT AGREE IN LENGTH"
+    for x in range(0, len(alpha_list)):
+        paired_list.append((alpha_list[x], p_error[x]))
+
+    paired_list.sort()
+
+    for x in paired_list:
+        sorted_alpha.append(x[0])
+        sorted_perror.append(x[1])
+
+    #alpha_list.sort()
+    #print(alpha_list)
+    #print(p_error)
+    #sorted_list.sort()
+    #print(sorted_list)
     plt.figure()
-    plt.plot(alpha_list, p_error, 'r-', linewidth = 1.5, markersize = 1.0)
+    plt.plot(sorted_alpha, sorted_perror, 'r-', linewidth = 1.5, markersize = 1.0)
     plt.xlabel('\N{greek small letter delta}')
     plt.ylabel("Prob. of error")
     plt.title("Prob. of error vs. \N{greek small letter delta} for critical threshold $\N{greek small letter delta}_t$ = %s" % delta_crit)
@@ -649,15 +667,27 @@ def parse_arguments():
 
     return args
 
+def get_critical_epsilon(n):
+    return float(n) ** -0.25
+
+def get_equivalent_epsilon(n, q):
+    p = np.log2(n)
+    return 2 ** (-q/4.0 * (1 - 1.0/p))
+
 def generate_sync_string(n, epsilon = 0.5, num_strings = 50, data_directory = None, debug = False):
     
     header = ["STRING ID", "SYNC-STRING", "NUM ITERATIONS", "AVG NUM INVALID INTERVALS PER ITERATION", "CONSTRUCTON TIME"]
-    row_list = []
+    #row_list = []
 
     if debug:
-        print("---------- STRING LENGTH = %d, EPSILON = %0.3lf ----------" % (n, epsilon))
+        print("---------- STRING LENGTH = %d, EPSILON = %0.5lf ----------" % (n, epsilon))
 
     file_name = os.path.join(data_directory, "sync_str_n_%d_epsilon_%s" % (n, "{:0.5f}".format(epsilon)[2:]))
+
+    with open(file_name, 'w', newline = '') as csvfile:
+        writer = csv.writer(csvfile, delimiter = ',')
+        writer.writerow(header)
+    csvfile.close()
 
     for i in range(0, num_strings):
         row = [str(i)]
@@ -676,18 +706,18 @@ def generate_sync_string(n, epsilon = 0.5, num_strings = 50, data_directory = No
         row.append(total_iterations)
         row.append("{:0.4f}".format(avg_invalid_intervals))
         row.append("{:0.5e}".format(construction_time))
-        row_list.append(row)
+        
+        with open(file_name, 'a', newline = '') as csvfile:
+            writer = csv.writer(csvfile, delimiter = ',')
+            writer.writerow(row)
+
+        csvfile.close()
+
 
         if debug:
             print("--> STRING %d, CONSTRUCTION TIME = %lf sec" % (i, construction_time))
     
-    with open(file_name, 'w', newline = '') as csvfile:
-        writer = csv.writer(csvfile, delimiter = ',')
-        writer.writerow(header)
-
-        for row in row_list:
-            writer.writerow(row)
-    csvfile.close()
+    
 
 def generate_string_repo():
     
@@ -744,15 +774,19 @@ if __name__ == '__main__':
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
-    generate_sync_string(n = n, epsilon = 0.32988, num_strings = 10, data_directory = SYNC_STR_DIR, debug = True)
+    generate_sync_string(n = n, epsilon = get_equivalent_epsilon(n = n, q = 8), num_strings = 1, data_directory = SYNC_STR_DIR, debug = True)
+    #generate_sync_string(n = n, epsilon = 0.32988, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
+    #generate_sync_string(n = n, epsilon = 0.31498, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
+    #generate_sync_string(n = n, epsilon = 0.30475, num_strings = 50, data_directory = SYNC_STR_DIR, debug = True)
 
     #test_suite(n = n, epsilon = 0, number_rates = NUM_RATES, number_alpha_steps = NUM_ALPHA_STEPS, number_iterations = NUM_ITERATIONS, 
     #            scheme = "UNIQUE", error_model = "FIXED", load_str = False, load_str_path = None, debug = False, log = True, log_path = LOG_DIR)
-    TEST_DIRECTORY = single_test(n = n, epsilon = 0.32988, RC = 0.50, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
-                                scheme = "SYNC", error_model = "FIXED", load_str = True, load_str_path = SYNC_STR_DIR, 
-                                debug = False, log = True, log_path = LOG_DIR)
+    #TEST_DIRECTORY = single_test(n = n, epsilon = 0.32988, RC = 0.50, num_steps = NUM_ALPHA_STEPS, num_iterations = NUM_ITERATIONS, 
+    #                            scheme = "SYNC", error_model = "IID", load_str = True, load_str_path = SYNC_STR_DIR, 
+    #                            debug = False, log = True, log_path = LOG_DIR)
 
-    plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = False, save = True)
+    #plot_prob_error(data_directory = TEST_DIRECTORY, output_figure_directory = FIGURE_DIR, display = False, save = True)
+    #plot_prob_error(data_directory = "/home/sacco/Documents/SynchronizationString/log_data/SYNC_FIXED_n_32_rate_50000_delta_crit_50000", output_figure_directory = FIGURE_DIR, display = False, save = True)
     #plot_prob_error(data_directory = "d:\\RPC\\log_data\\UNIQUE_FIXED_n_30_rate_25000_delta_crit_75000", output_figure_directory = FIGURE_DIR, display = False, save = True)
 
     '''
