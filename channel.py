@@ -5,14 +5,6 @@ import numpy as np
 import math as math
 import random as rand
 
-#class ErasureChannel():
-
-#    def __init__(self, delta):
-#        self.delta = delta
-
-#    def transmit(self, )
-
-
 class InsDelChannel():
 
     def __init__(self, delta, n, insertion_prob, data_alphabet, index_alphabet, error_model = "FIXED"):
@@ -78,7 +70,7 @@ class InsDelChannel():
                     pass
 
         elif self.error_model == "IID":
-            #print("IID HERE")
+
             num_errors = 0
             actions = [0] * len(tx_tuple_array)
 
@@ -94,8 +86,6 @@ class InsDelChannel():
                         actions[i] = 1
                     else:
                         actions[i] = -1
-            #if num_errors != self.max_errors:
-            #    print("VARIABLE ERRORS!")
 
             modified_length = len(tx_tuple_array) + sum(actions)
 
@@ -127,37 +117,6 @@ class InsDelChannel():
 
 
 EPSILON = 0.5
-
-def old():
-    m_string = "Te saluto.  Augustus sum, imperator et pontifex maximus romae.  Si tu es Romae amicus, es gratus."
-    
-    m_alphabet = alpha.Alphabet(create_ascii = True)
-
-    m_enc = enc.Encoder(m_alphabet)
-
-    m_transmitter = tx.Transmitter(encoder = m_enc, transmission_length = len(m_string), indexing_scheme = "UNIQUE")
-
-    tx_tuple_array = m_transmitter.create_transmission_tuple(m_string)
-
-    tx_msg_str = ""
-    tx_idx_str = ""
-    for i in range(0, len(tx_tuple_array)):
-        tx_msg_str += chr(tx_tuple_array[i].message_symbol.id)
-        tx_idx_str += chr(tx_tuple_array[i].index_symbol.id) + " "
-    print(tx_msg_str)
-    print(tx_idx_str)
-
-    chn = InsDelChannel(delta = 0.3, ins_prob = 0.5, msg_alphabet = m_alphabet, idx_alphabet = m_transmitter.index_alphabet)
-    rx_tuple_array = chn.transmit(tx_tuple_array)
-
-    rx_msg_str = ""
-    rx_idx_str = ""
-    for i in range(0, len(rx_tuple_array)):
-        rx_msg_str += chr(rx_tuple_array[i].message_symbol.id)
-        rx_idx_str += chr(rx_tuple_array[i].index_symbol.id) + " "
-    print(rx_msg_str)
-    print(rx_idx_str)
-
 
 if __name__ == '__main__':
 

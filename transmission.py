@@ -55,55 +55,6 @@ class Transmitter():
     def get_indexing_sequence(self):
         return self.indexing_sequence
             
-
-'''
-class StreamFormatter():
-
-    def __init__(self, transmission_length, index_alphabet = None, indexing_scheme = "UNIQUE"):
-        
-        self.transmission_length = transmission_length
-        self.indexing_scheme = indexing_scheme
-
-        if self.indexing_scheme == "UNIQUE":
-            self.index_alphabet = alpha.Alphabet(size = self.transmission_length, create_ascii = False)
-        else:
-            self.index_alphabet = index_alphabet
-
-    def create_transmission_tuple(self, base_word):
-
-        tx_tuple_array = np.empty(shape = self.transmission_length, dtype = Tuple)
-
-
-class Transmitter():
-
-    def __init__(self, encoder, transmission_length, index_alphabet = None, indexing_scheme = "UNIQUE"):
-        self.encoder = encoder
-        self.transmission_length = transmission_length
-        self.indexing_scheme = indexing_scheme
-        
-        if self.indexing_scheme == "UNIQUE":
-            self.index_alphabet = alpha.Alphabet(size = self.transmission_length, create_ascii = False)
-        else:
-            self.index_alphabet = index_alphabet
-    
-    def create_transmission_tuple(self, base_string):
-
-        tx_tuple_array = np.empty(shape = self.transmission_length, dtype = Tuple)
-        codeword = self.encoder.encode(base_string)
-
-        if self.indexing_scheme == "UNIQUE":
-            indexing_sequence = np.empty(shape = self.transmission_length, dtype = alpha.Symbol)
-
-            for i in range(0, len(indexing_sequence)):
-                indexing_sequence[i] = self.index_alphabet.get_symbol_by_index(index = i)
-
-            assert len(codeword) == len(indexing_sequence), "[ERROR] THE LENGTH OF THE CODEWORD AND INDEXING SEQUENCE DO NOT AGREE"
-
-            for i in range(0, len(codeword)):
-                tx_tuple_array[i] = Tuple(codeword[i], indexing_sequence[i])
-            return tx_tuple_array
-'''
-
 if __name__ == '__main__':
 
     m_string = "Te saluto.  Augustus sum, imperator et pontifex maximus romae.  Si tu es Romae amicus, es gratus."
@@ -121,6 +72,3 @@ if __name__ == '__main__':
 
     for t in tx_tuple:
         t.print_tuple(get_char = True, get_byte = False)
-
-
-   

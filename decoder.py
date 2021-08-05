@@ -62,6 +62,7 @@ class Decoder():
             # For each received substring
             for j in range(1, self.rx_sync_str.n + 1):
 
+                #print("SUBSTR j = %d" % j)
                 rx_substr = self.rx_sync_str.get_substring(0, j)
 
                 min_RSD = 1
@@ -71,6 +72,7 @@ class Decoder():
                 #for s in rx_substr:
                 #    s.print_symbol(print_char = False, print_byte = False, new_line = False)
                 #print()
+
                 # Compare to all expected codewords - i.e. prefixes of S
                 for i in range(1, self.tx_sync_str.n + 1):
 
@@ -87,29 +89,31 @@ class Decoder():
                         most_likely_index = i
 
                     #print(" RSD{S[0, i], S'[0, j] = %0.3lf" % current_rsd)
+               
                 #print("MOST LIKELY SUBSTRING S[0:%d]: " % most_likely_index, end = "")
                 #best_codeword = self.tx_sync_str.get_substring(0, most_likely_index)
                 #for s in best_codeword:
                 #        s.print_symbol(print_char = False, print_byte = False, new_line = False)
-                    
                 #print()
                 decoding_best_guesses[j - 1] = most_likely_index - 1  
-                
-            #print(decoding_best_guesses)
-
+            
+            # Check each expected index...
             for k in range(0, len(corrupted_word)):
 
                 expected_index_counter = 0
                 last_valid_index = 0
 
+                # ...In the list of guessed indices.  If found, increment the count and keep track of the index
                 for m in range(0, len(decoding_best_guesses)):
 
                     if decoding_best_guesses[m] == k:
                         expected_index_counter += 1
                         last_valid_index = m
 
+                # If one and only one valid index found, attach the corresponding data symbol to the recovered codeword
                 if expected_index_counter == 1:
                     corrupted_word[k] = rx_tuple_array[last_valid_index].message_symbol
+                # Else insertion or deletion, attach erasure
                 else:
                     corrupted_word[k] = a.Symbol(symbol_id = -1, erasure = True)
                     erasure_count += 1
@@ -118,39 +122,4 @@ class Decoder():
             #s.print_symbol(print_char = True, print_byte = False, new_line = False)
         #print()
         return corrupted_word, erasure_count
-'''     
-            for k in range(0, len(corrupted_word)):
-
-                expected_index_counter = 0
-                last_valid_index = 0
-
-                for m in range(0, len(decoding_best_guesses)):
-
-                    if decoding_best_guesses[m] == k:
-                        expected_index_counter += 1
-                        last_valid_index = m
-
-                if expected_index_counter == 1:
-                    corrupted_word[k] = rx_tuple_array
-
-                # If the expected value is in the list of received tuples, increment the counter and store the last valid index
-                    if rx_tuple_array[j].index_symbol.get_id() == s[1].get_id():
-                        expected_index_counter += 1
-                        last_valid_index = j
-
-                # If the expected count is exactly 1, there is no apparent error - just append the symbol
-                if expected_index_counter == 1:
-                    corrupted_word[s[0]] = rx_tuple_array[last_valid_index].message_symbol
-                # Else if the count is NOT 1 then there was a deletion (counter == 0) or an insertion (counter > 1), so insert erasure
-                else:
-                    corrupted_word[s[0]] = a.Symbol(symbol_id = -1, erasure = True)
-
-
-
-            #self.rx_sync_str.print_string(print_char = False, print_byte = False)
-
-            #self.tx_sync_str.print_string(print_char = False, print_byte = False)            
-            #self.rx_sync_str.print_string(print_char = False, print_byte = False)
-'''      
-
-        
+    
